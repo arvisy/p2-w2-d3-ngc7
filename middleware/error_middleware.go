@@ -14,10 +14,11 @@ func ErrorHandler() gin.HandlerFunc {
 		if len(ctx.Errors) > 0 {
 			err := ctx.Errors.Last()
 
-			if e, ok := err.Err.(*helpers.ErrorResponse); ok {
-				ctx.JSON(e.StatusCode, e)
-			} else {
-				helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error", "")
+			switch e := err.Err.(type) {
+			case *gin.Error:
+				helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Bad Request", e.Error())
+			default:
+				helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal Server Error", err.Error())
 			}
 		}
 	}
