@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"ngc7/helpers"
 	"ngc7/model"
 	"strconv"
 
@@ -23,17 +24,13 @@ func (s *StoreHandler) AddStore(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&store)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body", err.Error())
 		return
 	}
 
 	result := s.DB.Create(&store)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error creating store", result.Error.Error())
 		return
 	}
 
@@ -45,9 +42,7 @@ func (s *StoreHandler) GetStores(ctx *gin.Context) {
 
 	result := s.DB.Preload("Products").Find(&stores)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error retrieving store", result.Error.Error())
 		return
 	}
 
@@ -57,18 +52,14 @@ func (s *StoreHandler) GetStores(ctx *gin.Context) {
 func (s *StoreHandler) GetStoreByID(ctx *gin.Context) {
 	storeID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "invalid store id",
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid store ID", err.Error())
 		return
 	}
 
 	var store model.Store
 	result := s.DB.Preload("Products").First(&store, storeID)
 	if result.Error != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": "store not found",
-		})
+		helpers.HandlerError(ctx, http.StatusNotFound, "NOT_FOUND", "Store not found", result.Error.Error())
 		return
 	}
 
@@ -78,9 +69,7 @@ func (s *StoreHandler) GetStoreByID(ctx *gin.Context) {
 func (s *StoreHandler) DeleteStoreByID(ctx *gin.Context) {
 	storeID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "invalid store id",
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid store ID", err.Error())
 		return
 	}
 
@@ -88,23 +77,17 @@ func (s *StoreHandler) DeleteStoreByID(ctx *gin.Context) {
 	result := s.DB.First(&store, storeID)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{
-				"message": "store not found",
-			})
+			helpers.HandlerError(ctx, http.StatusNotFound, "NOT_FOUND", "Store not found", result.Error.Error())
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error retrieving store", result.Error.Error())
 		return
 	}
 
 	result = s.DB.Delete(&store)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error deleting store", result.Error.Error())
 		return
 	}
 
@@ -116,27 +99,21 @@ func (s *StoreHandler) DeleteStoreByID(ctx *gin.Context) {
 func (s *StoreHandler) UpdateStoreByID(ctx *gin.Context) {
 	storeID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "invalid store id",
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid store ID", err.Error())
 		return
 	}
 
 	var store model.Store
 	result := s.DB.First(&store, storeID)
 	if result.Error != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": "store not found",
-		})
+		helpers.HandlerError(ctx, http.StatusNotFound, "NOT_FOUND", "Store not found", result.Error.Error())
 		return
 	}
 
 	var updateStore model.Store
 	err = ctx.ShouldBind(&updateStore)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body", err.Error())
 		return
 	}
 
@@ -144,9 +121,7 @@ func (s *StoreHandler) UpdateStoreByID(ctx *gin.Context) {
 
 	result = s.DB.Save(&store)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error updating store", err.Error())
 		return
 	}
 

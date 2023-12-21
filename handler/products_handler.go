@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"ngc7/helpers"
 	"ngc7/model"
 	"strconv"
 
@@ -23,17 +24,13 @@ func (p *ProductHandler) AddProduct(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&product)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body", err.Error())
 		return
 	}
 
 	result := p.DB.Create(&product)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error creating product", result.Error.Error())
 		return
 	}
 
@@ -45,9 +42,7 @@ func (p *ProductHandler) GetProduct(ctx *gin.Context) {
 
 	result := p.DB.Find(&products)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error retrieving products", result.Error.Error())
 		return
 	}
 
@@ -57,18 +52,19 @@ func (p *ProductHandler) GetProduct(ctx *gin.Context) {
 func (p *ProductHandler) GetProductByID(ctx *gin.Context) {
 	productID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "invalid product id",
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid product ID", err.Error())
 		return
 	}
 
 	var product model.Product
 	result := p.DB.Preload("Store").First(&product, productID)
 	if result.Error != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": "product not found",
-		})
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			helpers.HandlerError(ctx, http.StatusNotFound, "NOT_FOUND", "Product not found", "")
+			return
+		}
+
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error retrieving product", result.Error.Error())
 		return
 	}
 
@@ -78,9 +74,7 @@ func (p *ProductHandler) GetProductByID(ctx *gin.Context) {
 func (p *ProductHandler) DeleteProductByID(ctx *gin.Context) {
 	productID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "invalid product id",
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid product ID", err.Error())
 		return
 	}
 
@@ -88,55 +82,48 @@ func (p *ProductHandler) DeleteProductByID(ctx *gin.Context) {
 	result := p.DB.First(&product, productID)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{
-				"message": "product not found",
-			})
+			helpers.HandlerError(ctx, http.StatusNotFound, "NOT_FOUND", "Product not found", "")
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error retrieving product", result.Error.Error())
 		return
 	}
 
 	result = p.DB.Delete(&product)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error deleting product", result.Error.Error())
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "product successfully deleted",
+		"message": "Product successfully deleted",
 	})
 }
 
 func (p *ProductHandler) UpdateProductByID(ctx *gin.Context) {
 	productID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "invalid product id",
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid product ID", err.Error())
 		return
 	}
 
 	var product model.Product
 	result := p.DB.First(&product, productID)
 	if result.Error != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": "product not found",
-		})
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			helpers.HandlerError(ctx, http.StatusNotFound, "NOT_FOUND", "Product not found", "")
+			return
+		}
+
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error retrieving product", result.Error.Error())
 		return
 	}
 
 	var updateProduct model.Product
 	err = ctx.ShouldBind(&updateProduct)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body", err.Error())
 		return
 	}
 
@@ -148,9 +135,8 @@ func (p *ProductHandler) UpdateProductByID(ctx *gin.Context) {
 
 	result = p.DB.Save(&product)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error updating product", result.Error.Error())
+		return
 	}
 
 	ctx.JSON(http.StatusOK, product)

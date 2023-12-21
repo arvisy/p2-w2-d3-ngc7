@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"ngc7/helpers"
 	"ngc7/model"
 
 	"github.com/gin-gonic/gin"
@@ -22,17 +23,13 @@ func (u *UserHandler) RegisterUser(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&user)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body", err.Error())
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "failed to hash the password",
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Failed to hash the password", err.Error())
 		return
 	}
 
@@ -40,9 +37,7 @@ func (u *UserHandler) RegisterUser(ctx *gin.Context) {
 
 	result := u.DB.Create(&user)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": result.Error.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Error creating user", result.Error.Error())
 		return
 	}
 
@@ -58,26 +53,20 @@ func (u *UserHandler) LoginUser(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&loginRequest)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-		})
+		helpers.HandlerError(ctx, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body", err.Error())
 		return
 	}
 
 	var user model.User
 	result := u.DB.Where("username = ?", loginRequest.Username).First(&user)
 	if result.Error != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"message": "invalid username or password",
-		})
+		helpers.HandlerError(ctx, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid username or password", "")
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"message": "invalid username or password",
-		})
+		helpers.HandlerError(ctx, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid username or password", "")
 		return
 	}
 
