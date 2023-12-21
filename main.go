@@ -23,6 +23,7 @@ func main() {
 
 	storeRoutes := server.Group("/stores")
 	storeRoutes.Use(middleware.ErrorHandler())
+	storeRoutes.Use(middleware.AuthMiddleware)
 	storeHandler := handler.NewStoreHandler(db)
 	{
 		storeRoutes.POST("/register", storeHandler.AddStore)
@@ -34,7 +35,7 @@ func main() {
 
 	productRoutes := server.Group("/products")
 	productRoutes.Use(middleware.ErrorHandler())
-	// productRoutes.Use(middleware.AuthMiddleware)
+	productRoutes.Use(middleware.AuthMiddleware)
 	productHandler := handler.NewProductHandler(db)
 	{
 		productRoutes.POST("", productHandler.AddProduct)

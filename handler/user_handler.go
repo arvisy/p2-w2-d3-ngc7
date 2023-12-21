@@ -5,6 +5,7 @@ import (
 	"ngc7/helpers"
 	"ngc7/model"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -70,9 +71,30 @@ func (u *UserHandler) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	token := "example_token"
+	token, err := generateToken(user.Username)
+	if err != nil {
+		helpers.HandlerError(ctx, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Failed to generate token", err.Error())
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"token": token,
 	})
+}
+
+var jwtKey = []byte("secret_key")
+
+func generateToken(username string) (string, error) {
+	claims := jwt.MapClaims{
+		"username": username,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
